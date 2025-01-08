@@ -45,8 +45,10 @@ const TaskManager = () => {
         }else{
           message.error('添加失败，请输入一个完整的待办信息');
         }
+        setLoading(false);
       }
       const errorCallBack = (error: any) => {
+        setLoading(false);
         message.error('添加失败，请重试:' + error.message);
       }
       getAnswer({
@@ -61,8 +63,6 @@ const TaskManager = () => {
       })
     } catch (error) {
       message.error('添加失败，请重试');
-    } finally {
-      setLoading(false);
     }
   };
 
