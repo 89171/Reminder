@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
 import { Layout, Table, Button, Input, Form, message } from 'antd';
 import './App.css'
+import { getAnswer } from './model'
 const { Header, Content, Footer } = Layout;
+const token = 'pat_9r3gsyMy8m9ZmJw6wzSM7piZleyfvMCsbOEP1rEAwaVq0UzaIoD8Lhvif0EIDkB1'
+const bot_id = '7455502134595862568'
+const user_id = '999999'
 
 const TaskManager = () => {
-  const [tasks, setTasks] = useState([{date: 'fdsfs', job: 'fsdfsd'},{date: 'fdsfs', job: 'fsdfsd'},{date: 'fdsfs', job: 'fsdfsd'},{date: 'fdsfs', job: 'fsdfsd'},{date: 'fdsfs', job: 'fsdfsd'},{date: 'fdsfs', job: 'fsdfsd'},{date: 'fdsfs', job: 'fsdfsd'},{date: 'fdsfs', job: 'fsdfsd'},{date: 'fdsfs', job: 'fsdfsd'},{date: 'fdsfs', job: 'fsdfsd'},{date: 'fdsfs', job: 'fsdfsd'},{date: 'fdsfs', job: 'fsdfsd'},{date: 'fdsfs', job: 'fsdfsd'},{date: 'fdsfs', job: 'fsdfsd'}]);
-  const [inputValue, setInputValue] = useState('');
+  const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [form] = Form.useForm();
 
-  const addTask = async () => {
-    if (!inputValue.trim()) {
+  const onFinish = async (values) => {
+    console.log(values);
+    const content = values.message.trim()
+    if (!content) {
       message.warning('请输入内容');
       return;
     }
@@ -17,17 +23,42 @@ const TaskManager = () => {
     setLoading(true);
     try {
       // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const successCallback = (res: any) => {
+        console.log(res);
+        const { data } = res as any;
+        const answerData = (data || []).find((item: any) => item?.type === 'answer')
+        console.log(answerData.content)
+        let contentString = answerData.content || '';
+        // 去掉换行符
+        contentString = contentString.replace(/\n/g, '');
+        // 将单引号替换为双引号
+        contentString = contentString.replace(/'/g, '"');
+        // 给键名加上双引号
+        contentString = contentString.replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3');
 
-      const newTask = {
-        key: tasks.length,
-        date: new Date().toLocaleDateString(),
-        job: inputValue,
-      };
-
-      setTasks([...tasks, newTask]);
-      setInputValue('');
-      message.success('事项已添加');
+        const answers = contentString && JSON.parse(contentString)
+        const answerList = (answers || []).filter(item => item.date && item.job)
+        if(answerList.length > 0) {
+          setTasks([...tasks, ...answerList]);
+          form.resetFields();
+          message.success('事项已添加');
+        }else{
+          message.error('添加失败，请输入一个完整的待办信息');
+        }
+      }
+      const errorCallBack = (error: any) => {
+        message.error('添加失败，请重试:' + error.message);
+      }
+      getAnswer({
+        token,
+        bot_id,
+        user_id,
+        content,
+        cb: successCallback,
+        errorcb: errorCallBack
+      }).catch((err) => {
+        message.error('添加失败，请重试:' + err.message);
+      })
     } catch (error) {
       message.error('添加失败，请重试');
     } finally {
@@ -45,18 +76,15 @@ const TaskManager = () => {
       title: '日期',
       dataIndex: 'date',
       key: 'date',
-      width: '30%',
     },
     {
       title: '事项',
       dataIndex: 'job',
       key: 'job',
-      width: '50%',
     },
     {
       title: '操作',
       key: 'action',
-      width: '20%',
       render: (_, record) => (
         <Button type="link" onClick={() => deleteTask(record.key)}>删除</Button>
       ),
@@ -78,16 +106,14 @@ const TaskManager = () => {
           />
         </div>
         <Footer style={{ padding: '10px 10px', background: '#fff', borderTop: '1px solid #e8e8e8' }}>
-          <Form layout="inline" style={{ display: 'flex', justifyContent: 'center' }}>
-            <Form.Item style={{ flexGrow: 1 }}>
+          <Form form={form} onFinish={onFinish} layout="inline" style={{ display: 'flex', justifyContent: 'center' }}>
+            <Form.Item name="message" style={{ flexGrow: 1 }}>
               <Input
                 placeholder="输入事项"
-                value={inputValue}
-                onChange={e => setInputValue(e.target.value)}
               />
             </Form.Item>
             <Form.Item>
-              <Button type="primary" onClick={addTask} loading={loading}>添加</Button>
+              <Button type="primary"  htmlType="submit" loading={loading}>添加</Button>
             </Form.Item>
           </Form>
         </Footer>
