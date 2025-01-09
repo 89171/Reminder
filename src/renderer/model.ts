@@ -41,7 +41,6 @@ async function fetchChatStatus(conversationId: string, chatId: string, token: st
 
   try {
     const response = await axios.get(url, { headers });
-    console.log('vvvvvvvvvvv2', response.data)
     return response.data;
   } catch (error) {
     console.error('Error fetching chat status:', error);
@@ -84,7 +83,6 @@ async function getAnswer({
     console.error('Failed to create chat message.');
     return;
   }
-  console.log('vvvvvvvvvvv1', createResponse)
   const conversationId = createResponse.data.conversation_id;
   const chatId = createResponse.data.id;
 

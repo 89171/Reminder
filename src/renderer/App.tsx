@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { Layout, Table, Button, Input, Form, message } from 'antd';
 import './App.css'
 import { getAnswer } from './model'
+import { createAndPollMessage } from './model2';
 const { Header, Content, Footer } = Layout;
 const token = 'pat_9r3gsyMy8m9ZmJw6wzSM7piZleyfvMCsbOEP1rEAwaVq0UzaIoD8Lhvif0EIDkB1'
 const bot_id = '7455502134595862568'
 const user_id = '999999'
 
 const TaskManager = () => {
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks] = useState([] as any);
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
 
@@ -21,49 +22,78 @@ const TaskManager = () => {
     }
 
     setLoading(true);
-    try {
-      // 模拟API调用
-      const successCallback = (res: any) => {
-        console.log(res);
-        const { data } = res as any;
-        const answerData = (data || []).find((item: any) => item?.type === 'answer')
-        console.log(answerData.content)
-        let contentString = answerData.content || '';
-        // 去掉换行符
-        contentString = contentString.replace(/\n/g, '');
-        // 将单引号替换为双引号
-        contentString = contentString.replace(/'/g, '"');
-        // 给键名加上双引号
-        contentString = contentString.replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3');
+    createAndPollMessage({
+      token,
+      bot_id,
+      user_id,
+      additional_messages: [
+        {
+          content,
+          "content_type": "text",
+          "role": "user"
+        },
+      ],
+      auto_save_history: true,
+    })
+    .then(answer => {
+      console.log('Answer:', answer)
+      if(answer.length > 0) {
+        setTasks([...tasks, ...answer]);
+        form.resetFields();
+        message.success('事项已添加');
+      }else{
+        message.error('添加失败，请输入一个完整的待办信息');
+      }
+      setLoading(false);
+    })
+    .catch(error => {
+      setLoading(false);
+      message.error('添加失败，请重试:' + error.message);
+      console.error('Failed to retrieve answer:', error)
+    });
+    // try {
+    //   // 模拟API调用
+    //   const successCallback = (res: any) => {
+    //     console.log(res);
+    //     const { data } = res as any;
+    //     const answerData = (data || []).find((item: any) => item?.type === 'answer')
+    //     console.log(answerData.content)
+    //     let contentString = answerData.content || '';
+    //     // 去掉换行符
+    //     contentString = contentString.replace(/\n/g, '');
+    //     // 将单引号替换为双引号
+    //     contentString = contentString.replace(/'/g, '"');
+    //     // 给键名加上双引号
+    //     contentString = contentString.replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3');
 
-        const answers = contentString && JSON.parse(contentString)
-        const answerList = (answers || []).filter(item => item.date && item.job)
-        if(answerList.length > 0) {
-          setTasks([...tasks, ...answerList]);
-          form.resetFields();
-          message.success('事项已添加');
-        }else{
-          message.error('添加失败，请输入一个完整的待办信息');
-        }
-        setLoading(false);
-      }
-      const errorCallBack = (error: any) => {
-        setLoading(false);
-        message.error('添加失败，请重试:' + error.message);
-      }
-      getAnswer({
-        token,
-        bot_id,
-        user_id,
-        content,
-        cb: successCallback,
-        errorcb: errorCallBack
-      }).catch((err) => {
-        message.error('添加失败，请重试:' + err.message);
-      })
-    } catch (error) {
-      message.error('添加失败，请重试');
-    }
+    //     const answers = contentString && JSON.parse(contentString)
+    //     const answerList = (answers || []).filter(item => item.date && item.job)
+    //     if(answerList.length > 0) {
+    //       setTasks([...tasks, ...answerList]);
+    //       form.resetFields();
+    //       message.success('事项已添加');
+    //     }else{
+    //       message.error('添加失败，请输入一个完整的待办信息');
+    //     }
+    //     setLoading(false);
+    //   }
+    //   const errorCallBack = (error: any) => {
+    //     setLoading(false);
+    //     message.error('添加失败，请重试:' + error.message);
+    //   }
+    //   getAnswer({
+    //     token,
+    //     bot_id,
+    //     user_id,
+    //     content,
+    //     cb: successCallback,
+    //     errorcb: errorCallBack
+    //   }).catch((err) => {
+    //     message.error('添加失败，请重试:' + err.message);
+    //   })
+    // } catch (error) {
+    //   message.error('添加失败，请重试');
+    // }
   };
 
   const deleteTask = (key) => {
