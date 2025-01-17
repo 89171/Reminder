@@ -12,6 +12,7 @@ import path from 'path';
 import { app, BrowserWindow, shell, ipcMain, Tray, Menu } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
+import fs from 'fs';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 
@@ -23,14 +24,24 @@ class AppUpdater {
   }
 }
 
+const filePath = path.join(__dirname, './data.json');
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
-
-ipcMain.on('ipc-example', async (event, arg) => {
-  const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
-  console.log(msgTemplate(arg));
-  event.reply('ipc-example', msgTemplate('pong'));
+console.log('000000000', filePath);
+ipcMain.handle('get-data', async () => {
+  const jsonData = fs.readFileSync(filePath, 'utf-8');
+  return JSON.parse(jsonData);
 });
+
+ipcMain.handle('add-data', async (event, newData) => {
+  fs.writeFileSync(filePath, JSON.stringify(newData), 'utf-8');
+  return newData;
+});
+// ipcMain.on('ipc-example', async (event, arg) => {
+//   const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
+//   console.log(msgTemplate(arg));
+//   event.reply('ipc-example', msgTemplate('pong'));
+// });
 
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
@@ -80,6 +91,7 @@ const createWindow = async () => {
     icon: getAssetPath('icon.png'),
     webPreferences: {
       nodeIntegration: true,
+      contextIsolation: true,
       preload: app.isPackaged
         ? path.join(__dirname, 'preload.js')
         : path.join(__dirname, '../../.erb/dll/preload.js'),

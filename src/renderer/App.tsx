@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Layout, Table, Button, Input, Form, message } from 'antd';
 import './App.css'
-import { getAnswer } from './model'
-import { createAndPollMessage } from './model2';
+import { createAndPollMessage } from './model';
 const { Header, Content, Footer } = Layout;
 const token = 'pat_9r3gsyMy8m9ZmJw6wzSM7piZleyfvMCsbOEP1rEAwaVq0UzaIoD8Lhvif0EIDkB1'
 const bot_id = '7455502134595862568'
 const user_id = '999999'
 
-const TaskManager = () => {
+const TaskManager = (props: any) => {
+  const { getData, saveData } = props
   const [tasks, setTasks] = useState([] as any);
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
@@ -37,8 +37,11 @@ const TaskManager = () => {
     })
     .then(answer => {
       console.log('Answer:', answer)
-      if(answer.length > 0) {
-        setTasks([...tasks, ...answer]);
+      if(answer.length > 0 && answer[0].date) {
+        const newData = [...tasks, ...answer]
+        saveData?.(newData)?.then?.((data) => {
+          setTasks(data);
+        });
         form.resetFields();
         message.success('事项已添加');
       }else{
@@ -95,17 +98,25 @@ const TaskManager = () => {
     //   message.error('添加失败，请重试');
     // }
   };
-
-  const deleteTask = (key) => {
-    const newTasks = tasks.filter(task => task.key !== key);
-    setTasks(newTasks);
+  useEffect(() => {
+    console.log('9999999999999-', typeof getData)
+    getData?.()?.then?.(data=>{
+      console.log('999999990', JSON.stringify(data));
+      setTasks(data || []);
+    });
+  },[])
+  const deleteTask = (id) => {
+    const newTasks = tasks.filter(task => task.id !== id);
+    saveData(newTasks).then((data) => {
+      setTasks(data);
+    })
   };
 
   const columns = [
     {
       title: '日期',
-      dataIndex: 'date',
-      key: 'date',
+      dataIndex: 'dateDesc',
+      key: 'dateDesc',
     },
     {
       title: '事项',
@@ -116,7 +127,9 @@ const TaskManager = () => {
       title: '操作',
       key: 'action',
       render: (_, record) => (
-        <Button type="link" onClick={() => deleteTask(record.key)}>删除</Button>
+        <Button type="link" onClick={() => {
+          deleteTask(record.id)
+        }}>删除</Button>
       ),
     },
   ];

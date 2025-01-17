@@ -22,6 +22,8 @@ const electronHandler = {
       ipcRenderer.once(channel, (_event, ...args) => func(...args));
     },
   },
+  getData: () => ipcRenderer.invoke('get-data'),
+  saveData: (newData: any) => ipcRenderer.invoke('add-data', newData)
 };
 
 contextBridge.exposeInMainWorld('electron', electronHandler);
